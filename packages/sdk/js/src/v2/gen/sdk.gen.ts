@@ -66,6 +66,9 @@ import type {
   FilePartSource,
   FileReadErrors,
   FileReadResponses,
+  FileReference,
+  FileReferencesResolveErrors,
+  FileReferencesResolveResponses,
   FileStatusErrors,
   FileStatusResponses,
   FindFilesErrors,
@@ -1826,6 +1829,51 @@ export class Find extends HeyApiClient {
   }
 }
 
+export class References extends HeyApiClient {
+  /**
+   * Resolve file references
+   *
+   * Resolve validated file-reference candidates against the current workspace without opening them.
+   */
+  public resolve<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+      references?: Array<FileReference>
+      refresh?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "references" },
+            { in: "body", key: "refresh" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      FileReferencesResolveResponses,
+      FileReferencesResolveErrors,
+      ThrowOnError
+    >({
+      url: "/file/reference/resolve",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+}
+
 export class File extends HeyApiClient {
   /**
    * List files
@@ -1919,6 +1967,11 @@ export class File extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _references?: References
+  get references(): References {
+    return (this._references ??= new References({ client: this.client }))
   }
 }
 

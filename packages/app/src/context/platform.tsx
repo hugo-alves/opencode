@@ -37,6 +37,9 @@ type PlatformBase = {
   /** Open a local path in a local app (desktop only) */
   openPath?(path: string, app?: string): Promise<void>
 
+  /** Reveal a local path in the system file manager (desktop only) */
+  revealPath?(path: string): Promise<void>
+
   /** Restart the app  */
   restart(): Promise<void>
 

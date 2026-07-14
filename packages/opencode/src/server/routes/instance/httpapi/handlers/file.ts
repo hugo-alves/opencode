@@ -5,6 +5,7 @@ import { Ripgrep } from "@opencode-ai/core/ripgrep"
 import { FSUtil } from "@opencode-ai/core/fs-util"
 import { Location } from "@opencode-ai/core/location"
 import { AbsolutePath, RelativePath } from "@opencode-ai/core/schema"
+import { FileReferenceResolver } from "@/file-reference"
 import { Effect, Layer, Option } from "effect"
 import ignore from "ignore"
 import path from "path"
@@ -15,6 +16,7 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
   Effect.gen(function* () {
     const ripgrep = yield* Ripgrep.Service
     const locations = yield* LocationServiceMap.Service
+    const fs = yield* FSUtil.Service
 
     const filesystem = Effect.fnUntraced(function* <A, E, R>(effect: Effect.Effect<A, E, R>) {
       return yield* effect.pipe(
@@ -22,6 +24,28 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
           locations.get(Location.Ref.make({ directory: AbsolutePath.make((yield* InstanceState.context).directory) })),
         ),
       )
+    })
+
+    const references = FileReferenceResolver.createResolver({
+      io: {
+        realPath: (target) => fs.realPath(target),
+        stat: (target) =>
+          Effect.gen(function* () {
+            const info = yield* fs.stat(target)
+            const type =
+              info.type === "File" ? ("file" as const) : info.type === "Directory" ? ("directory" as const) : undefined
+            if (!type) return yield* Effect.fail(new Error("Unsupported file type"))
+            return { type, executable: type === "file" && (info.mode & 0o111) !== 0 }
+          }),
+        search: (input) =>
+          filesystem(
+            FileSystem.Service.use((service) =>
+              service
+                .find({ query: input.query, limit: input.limit })
+                .pipe(Effect.map((items) => items.map((item) => ({ path: item.path, type: item.type })))),
+            ),
+          ),
+      },
     })
 
     const findText = Effect.fn("FileHttpApi.findText")(function* (ctx: { query: { pattern: string } }) {
@@ -128,6 +152,20 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       return []
     })
 
+    const resolveReferences = Effect.fn("FileHttpApi.resolveReferences")(function* (ctx: {
+      payload: {
+        references: Parameters<typeof references.resolveBatch>[0]["references"]
+        refresh?: boolean
+      }
+    }) {
+      const directory = (yield* InstanceState.context).directory
+      return yield* references.resolveBatch({
+        workspace: directory,
+        references: ctx.payload.references,
+        refresh: ctx.payload.refresh,
+      })
+    })
+
     return handlers
       .handle("findText", findText)
       .handle("findFile", findFile)
@@ -135,5 +173,6 @@ export const fileHandlers = HttpApiBuilder.group(InstanceHttpApi, "file", (handl
       .handle("list", list)
       .handle("content", content)
       .handle("status", status)
+      .handle("resolveReferences", resolveReferences)
   }),
 ).pipe(Layer.provide(locationServiceMapLayer))

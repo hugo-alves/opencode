@@ -79,6 +79,7 @@ export type WslServersPlatform = {
   probeAddable(distros: string[]): Promise<void>
   installOpencode(name: string): Promise<void>
   openTerminal(name: string): Promise<void>
+  translatePath(distro: string, path: string): Promise<string>
   addServer(distro: string): Promise<WslServerConfig>
   removeServer(id: string): Promise<void>
   startServer(id: string): Promise<void>

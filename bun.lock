@@ -781,6 +781,7 @@
       "dependencies": {
         "@kobalte/core": "catalog:",
         "@opencode-ai/core": "workspace:*",
+        "@opencode-ai/schema": "workspace:*",
         "@opencode-ai/sdk": "workspace:*",
         "@opencode-ai/ui": "workspace:*",
         "@pierre/diffs": "catalog:",
@@ -810,6 +811,7 @@
         "strip-ansi": "7.1.2",
       },
       "devDependencies": {
+        "@happy-dom/global-registrator": "20.0.11",
         "@tsconfig/node22": "catalog:",
         "@types/bun": "catalog:",
         "@types/katex": "0.16.7",

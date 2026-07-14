@@ -23,6 +23,7 @@ import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { debounce } from "@solid-primitives/scheduled"
 import { useLocal } from "@/context/local"
 import { FileProvider, selectionFromLines, useFile, type FileSelection, type SelectedLineRange } from "@/context/file"
+import { FileReferenceProvider } from "@/context/file-reference"
 import { createStore } from "solid-js/store"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Select } from "@opencode-ai/ui/select"
@@ -300,9 +301,11 @@ function SessionProviders(props: ParentProps) {
   return (
     <TerminalProvider>
       <FileProvider>
-        <PromptProvider>
-          <CommentsProvider>{props.children}</CommentsProvider>
-        </PromptProvider>
+        <FileReferenceProvider>
+          <PromptProvider>
+            <CommentsProvider>{props.children}</CommentsProvider>
+          </PromptProvider>
+        </FileReferenceProvider>
       </FileProvider>
     </TerminalProvider>
   )

@@ -2014,6 +2014,7 @@ export type Config = {
     reserved?: number
   }
   experimental?: {
+    clickableFileReferences?: boolean
     disable_paste_summary?: boolean
     batch_tool?: boolean
     openTelemetry?: boolean
@@ -2294,6 +2295,40 @@ export type File = {
   removed: number
   status: "added" | "deleted" | "modified"
 }
+
+export type FileReference = {
+  raw: string
+  path: string
+  lineStart?: number
+  lineEnd?: number
+  column?: number
+  source: "markdown" | "tool"
+}
+
+export type ResolvedFileReference =
+  | {
+      kind: "workspace-file"
+      relativePath: string
+      absolutePath: string
+      executable: boolean
+    }
+  | {
+      kind: "external-file"
+      absolutePath: string
+      executable: boolean
+    }
+  | {
+      kind: "directory"
+      absolutePath: string
+      external: boolean
+    }
+  | {
+      kind: "ambiguous"
+      matches: Array<string>
+    }
+  | {
+      kind: "missing"
+    }
 
 export type Path = {
   home: string
@@ -8075,6 +8110,37 @@ export type FileStatusResponses = {
 }
 
 export type FileStatusResponse = FileStatusResponses[keyof FileStatusResponses]
+
+export type FileReferencesResolveData = {
+  body?: {
+    references: Array<FileReference>
+    refresh?: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/file/reference/resolve"
+}
+
+export type FileReferencesResolveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type FileReferencesResolveError = FileReferencesResolveErrors[keyof FileReferencesResolveErrors]
+
+export type FileReferencesResolveResponses = {
+  /**
+   * Resolved file references
+   */
+  200: Array<ResolvedFileReference>
+}
+
+export type FileReferencesResolveResponse = FileReferencesResolveResponses[keyof FileReferencesResolveResponses]
 
 export type InstanceDisposeData = {
   body?: never

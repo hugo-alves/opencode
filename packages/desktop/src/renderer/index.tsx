@@ -217,6 +217,9 @@ const createPlatform = (windowState: DesktopWindowState): Platform => {
       }
       return window.api.openPath(path, app)
     },
+    revealPath(path: string) {
+      return window.api.revealPath(path)
+    },
 
     back() {
       window.history.back()

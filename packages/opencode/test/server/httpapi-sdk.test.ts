@@ -524,6 +524,11 @@ describe("HttpApi SDK", () => {
         const file = yield* capture(() => sdk.file.read({ path: "hello.txt" }))
         const files = yield* capture(() => sdk.file.list({ path: "." }))
         const fileStatus = yield* capture(() => sdk.file.status())
+        const fileReferences = yield* capture(() =>
+          sdk.file.references.resolve({
+            references: [{ raw: "hello.txt:1", path: "hello.txt", lineStart: 1, source: "markdown" }],
+          }),
+        )
         const findFiles = yield* capture(() => sdk.find.files({ query: "hello", limit: 10 }))
         const findText = yield* capture(() => sdk.find.text({ pattern: "sdk-parity" }))
         const agents = yield* capture(() => sdk.app.agents())
@@ -543,6 +548,7 @@ describe("HttpApi SDK", () => {
             file,
             files,
             fileStatus,
+            fileReferences,
             findFiles,
             findText,
             agents,
@@ -559,6 +565,7 @@ describe("HttpApi SDK", () => {
           foundFile: JSON.stringify(findFiles.data).includes("hello.txt"),
           foundText: JSON.stringify(findText.data ?? null).includes("sdk-parity"),
           listedFile: JSON.stringify(files.data).includes("hello.txt"),
+          resolvedFile: record(array(fileReferences.data)[0]).relativePath === "hello.txt",
           vcs: { hasBranch: typeof record(vcs.data).branch === "string" },
         }
       }),

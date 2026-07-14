@@ -250,6 +250,11 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     const setScrollLeft = (input: string, left: number) => withPath(input, (file) => view().setScrollLeft(file, left))
     const setSelectedLines = (input: string, range: SelectedLineRange | null) =>
       withPath(input, (file) => view().setSelectedLines(file, range))
+    const open = async (input: string) => {
+      const target = path.normalize(input)
+      await load(target)
+      await tabs.open(path.tab(target))
+    }
 
     onCleanup(() => {
       stop()
@@ -278,6 +283,7 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
       },
       get,
       load,
+      open,
       scrollTop,
       scrollLeft,
       setScrollTop,

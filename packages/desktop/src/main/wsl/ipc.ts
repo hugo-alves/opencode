@@ -55,6 +55,9 @@ export function registerWslIpcHandlers(controller: WslServersController) {
   ipcMain.handle("wsl-servers-open-terminal", (_event: IpcMainInvokeEvent, name: string) =>
     controller.openTerminal(requireWslIpcString("distro", name)),
   )
+  ipcMain.handle("wsl-servers-translate-path", (_event: IpcMainInvokeEvent, distro: string, path: string) =>
+    controller.translatePath(requireWslIpcString("distro", distro), requireWslIpcString("path", path)),
+  )
   ipcMain.handle("wsl-servers-add", (_event: IpcMainInvokeEvent, distro: string) =>
     controller.addServer(requireWslIpcString("distro", distro)),
   )
@@ -97,6 +100,7 @@ function registerUnavailableWslIpcHandlers() {
   ipcMain.handle("wsl-servers-probe-addable", unavailable)
   ipcMain.handle("wsl-servers-install-opencode", unavailable)
   ipcMain.handle("wsl-servers-open-terminal", unavailable)
+  ipcMain.handle("wsl-servers-translate-path", unavailable)
   ipcMain.handle("wsl-servers-add", unavailable)
   ipcMain.handle("wsl-servers-remove", unavailable)
   ipcMain.handle("wsl-servers-start", unavailable)

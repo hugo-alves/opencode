@@ -62,6 +62,7 @@ import { animate } from "motion"
 import { useLocation } from "@solidjs/router"
 import { attached, inline, kind } from "./message-file"
 import { readPartText } from "./message-part-text"
+import { useFileReference } from "../context/file-reference"
 
 async function writeClipboard(text: string): Promise<boolean> {
   const body = typeof document === "undefined" ? undefined : document.body
@@ -1387,6 +1388,61 @@ export const ToolRegistry = {
   render: getTool,
 }
 
+function ToolFileReference(props: { path: string; children: JSX.Element }) {
+  const context = useFileReference()
+  const [clickable, setClickable] = createSignal(false)
+  let generation = 0
+
+  createEffect(() => {
+    const enabled = context?.enabled() ?? false
+    const path = props.path
+    const current = ++generation
+    setClickable(false)
+    if (!enabled || !path || !context) return
+    void context
+      .resolve([{ raw: path, path, source: "tool" }])
+      .then((resolved) => {
+        if (generation !== current) return
+        setClickable(resolved[0]?.kind !== "missing")
+      })
+      .catch(() => {})
+  })
+
+  onCleanup(() => generation++)
+
+  const open = () => {
+    if (!clickable() || !context) return
+    void context.open({ raw: props.path, path: props.path, source: "tool" })
+  }
+
+  return (
+    <div
+      data-tool-file-reference={clickable() ? "" : undefined}
+      role={clickable() ? "button" : undefined}
+      tabIndex={clickable() ? 0 : undefined}
+      title={clickable() ? `Open ${props.path}` : undefined}
+      classList={{
+        "cursor-pointer hover:underline focus-visible:outline-2 focus-visible:outline-border-focus rounded-sm":
+          clickable(),
+      }}
+      onClick={(event) => {
+        if (!clickable()) return
+        event.preventDefault()
+        event.stopPropagation()
+        open()
+      }}
+      onKeyDown={(event) => {
+        if (!clickable() || (event.key !== "Enter" && event.key !== " ")) return
+        event.preventDefault()
+        event.stopPropagation()
+        open()
+      }}
+    >
+      {props.children}
+    </div>
+  )
+}
+
 function ToolFileAccordion(props: { path: string; actions?: JSX.Element; children: JSX.Element }) {
   const value = createMemo(() => props.path || "tool-file")
 
@@ -1401,15 +1457,17 @@ function ToolFileAccordion(props: { path: string; actions?: JSX.Element; childre
         <StickyAccordionHeader>
           <Accordion.Trigger>
             <div data-slot="apply-patch-trigger-content">
-              <div data-slot="apply-patch-file-info">
-                <FileIcon node={{ path: props.path, type: "file" }} />
-                <div data-slot="apply-patch-file-name-container">
-                  <Show when={props.path.includes("/")}>
-                    <span data-slot="apply-patch-directory">{`\u202A${getDirectory(props.path)}\u202C`}</span>
-                  </Show>
-                  <span data-slot="apply-patch-filename">{getFilename(props.path)}</span>
+              <ToolFileReference path={props.path}>
+                <div data-slot="apply-patch-file-info">
+                  <FileIcon node={{ path: props.path, type: "file" }} />
+                  <div data-slot="apply-patch-file-name-container">
+                    <Show when={props.path.includes("/")}>
+                      <span data-slot="apply-patch-directory">{`\u202A${getDirectory(props.path)}\u202C`}</span>
+                    </Show>
+                    <span data-slot="apply-patch-filename">{getFilename(props.path)}</span>
+                  </div>
                 </div>
-              </div>
+              </ToolFileReference>
               <div data-slot="apply-patch-trigger-actions">
                 {props.actions}
                 <Icon name="chevron-grabber-vertical" size="small" />
@@ -2229,15 +2287,17 @@ ToolRegistry.register({
                           <StickyAccordionHeader>
                             <Accordion.Trigger>
                               <div data-slot="apply-patch-trigger-content">
-                                <div data-slot="apply-patch-file-info">
-                                  <FileIcon node={{ path: file.relativePath, type: "file" }} />
-                                  <div data-slot="apply-patch-file-name-container">
-                                    <Show when={file.relativePath.includes("/")}>
-                                      <span data-slot="apply-patch-directory">{`\u202A${getDirectory(file.relativePath)}\u202C`}</span>
-                                    </Show>
-                                    <span data-slot="apply-patch-filename">{getFilename(file.relativePath)}</span>
+                                <ToolFileReference path={file.filePath}>
+                                  <div data-slot="apply-patch-file-info">
+                                    <FileIcon node={{ path: file.relativePath, type: "file" }} />
+                                    <div data-slot="apply-patch-file-name-container">
+                                      <Show when={file.relativePath.includes("/")}>
+                                        <span data-slot="apply-patch-directory">{`\u202A${getDirectory(file.relativePath)}\u202C`}</span>
+                                      </Show>
+                                      <span data-slot="apply-patch-filename">{getFilename(file.relativePath)}</span>
+                                    </div>
                                   </div>
-                                </div>
+                                </ToolFileReference>
                                 <div data-slot="apply-patch-trigger-actions">
                                   <Switch>
                                     <Match when={file.type === "add"}>

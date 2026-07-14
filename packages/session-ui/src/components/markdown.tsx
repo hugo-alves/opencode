@@ -31,6 +31,13 @@ import { markdownBlockKey, type MarkdownToken } from "./markdown-worker-protocol
 import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-state"
 import { getCachedMarkdown, sanitizeMarkdown, touchCachedMarkdown, type MarkdownCacheEntry } from "./markdown-cache"
 import { inlineCodeKind } from "./markdown-inline-code-kind"
+import { useFileReference } from "../context/file-reference"
+import {
+  applyResolvedFileReferences,
+  clearFileReferenceButtons,
+  collectFileReferenceCandidates,
+  setupFileReferenceOpen,
+} from "./file-reference-dom"
 
 type RenderedBlock =
   | (MarkdownCacheEntry & { key: string; mode: Exclude<Block["mode"], "code"> })
@@ -364,6 +371,7 @@ export function Markdown(
   const [local, others] = splitProps(props, ["text", "cacheKey", "streaming", "class", "classList"])
   const marked = useMarked()
   const i18n = useI18n()
+  const fileReference = useFileReference()
   const [root, setRoot] = createSignal<HTMLDivElement>()
   const owner = createUniqueId()
   const activeCodeKeys = new Set<string>()
@@ -454,6 +462,8 @@ export function Markdown(
   )
 
   let copyCleanup: (() => void) | undefined
+  let fileReferenceCleanup: (() => void) | undefined
+  let fileReferenceGeneration = 0
 
   createEffect(() => {
     const container = root()
@@ -495,8 +505,36 @@ export function Markdown(
       }))
   })
 
+  createEffect(() => {
+    const container = root()
+    const result = html.latest ?? html()
+    const enabled = fileReference?.enabled() ?? false
+    const generation = ++fileReferenceGeneration
+    local.text
+    if (!container || !result || isServer) return
+    if (!fileReferenceCleanup && fileReference) {
+      fileReferenceCleanup = setupFileReferenceOpen(container, (reference) => void fileReference.open(reference))
+    }
+    if (!enabled || local.streaming) {
+      clearFileReferenceButtons(container)
+      return
+    }
+
+    const candidates = collectFileReferenceCandidates(container)
+    if (candidates.length === 0) return
+    void fileReference
+      ?.resolve(candidates.map((candidate) => candidate.reference))
+      .then((resolved) => {
+        if (generation !== fileReferenceGeneration || root() !== container || local.streaming) return
+        applyResolvedFileReferences(candidates, resolved)
+      })
+      .catch(() => {})
+  })
+
   onCleanup(() => {
     if (copyCleanup) copyCleanup()
+    if (fileReferenceCleanup) fileReferenceCleanup()
+    fileReferenceGeneration++
     activeCodeKeys.forEach(disposeCode)
     completedCode.clear()
   })

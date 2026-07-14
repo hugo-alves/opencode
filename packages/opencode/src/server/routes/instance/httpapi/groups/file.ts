@@ -1,5 +1,5 @@
-import { FileSystem } from "@opencode-ai/core/filesystem"
 import { NonNegativeInt } from "@opencode-ai/core/schema"
+import { FileReference } from "@opencode-ai/schema/file-reference"
 import { LSP } from "@/lsp/lsp"
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
@@ -99,6 +99,7 @@ export const FilePaths = {
   list: "/file",
   content: "/file/content",
   status: "/file/status",
+  resolveReferences: "/file/reference/resolve",
 } as const
 
 export const FileApi = HttpApi.make("file")
@@ -163,6 +164,18 @@ export const FileApi = HttpApi.make("file")
             identifier: "file.status",
             summary: "Get file status",
             description: "Get the git status of all files in the project.",
+          }),
+        ),
+        HttpApiEndpoint.post("resolveReferences", FilePaths.resolveReferences, {
+          query: WorkspaceRoutingQuery,
+          payload: FileReference.ResolveInput,
+          success: described(Schema.Array(FileReference.Resolved), "Resolved file references"),
+        }).annotateMerge(
+          OpenApi.annotations({
+            identifier: "file.references.resolve",
+            summary: "Resolve file references",
+            description:
+              "Resolve validated file-reference candidates against the current workspace without opening them.",
           }),
         ),
       )

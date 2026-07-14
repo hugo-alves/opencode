@@ -26,6 +26,7 @@ import {
   probeWslRuntime,
   readWslCommandVersion,
   resolveWslOpencode,
+  resolveWslWindowsPath,
   summarize,
 } from "./runtime"
 
@@ -50,6 +51,7 @@ type WslServersControllerOptions = {
   probeDistro?: typeof probeWslDistro
   resolveOpencode?: typeof resolveWslOpencode
   readCommandVersion?: typeof readWslCommandVersion
+  translatePath?: typeof resolveWslWindowsPath
 }
 
 export type WslServersController = ReturnType<typeof createWslServersController>
@@ -373,6 +375,10 @@ export function createWslServersController(
 
     async openTerminal(name: string) {
       await openWslTerminal(name)
+    },
+
+    async translatePath(distro: string, value: string) {
+      return (options?.translatePath ?? resolveWslWindowsPath)(value, distro)
     },
 
     async addServer(distro: string): Promise<WslServerConfig> {

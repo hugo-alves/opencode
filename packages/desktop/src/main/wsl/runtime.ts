@@ -202,6 +202,16 @@ export function runWslSh(script: string, distro?: string | null, opts?: RunWslOp
   return runWslInDistro(["sh", "-lc", script], distro, opts)
 }
 
+export async function resolveWslWindowsPath(value: string, distro: string, opts?: RunWslOptions) {
+  const result = await runWslInDistro(["wslpath", "-w", "--", value], distro, opts)
+  if (result.code !== 0) {
+    throw new Error(summarize(result.stderr || result.stdout) || `Failed to translate WSL path: ${value}`)
+  }
+  const translated = firstLine(result.stdout)
+  if (!translated) throw new Error(`WSL returned no Windows path for: ${value}`)
+  return translated
+}
+
 export async function probeWslRuntime(opts?: RunWslOptions): Promise<WslRuntimeCheck> {
   const version = await runWsl(["--version"], opts).catch((error) => ({
     code: 1,

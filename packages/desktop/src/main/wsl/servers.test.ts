@@ -71,6 +71,22 @@ test("opens terminals for distro names containing spaces", () => {
   expect(wslTerminalArgs("Ubuntu Preview")).toEqual(["/c", "start", "", "wsl", "-d", "Ubuntu Preview"])
 })
 
+test("translates paths through the selected WSL distro without shell interpolation", async () => {
+  const calls: { value: string; distro: string }[] = []
+  const controller = createWslServersController("1.16.2", async () => new Promise<never>(() => undefined), {
+    ...testControllerOptions(),
+    translatePath: async (value, distro) => {
+      calls.push({ value, distro })
+      return "C:\\Users\\me\\project\\report final.pdf"
+    },
+  })
+
+  expect(await controller.translatePath("Ubuntu Preview", "/home/me/project/report final.pdf")).toBe(
+    "C:\\Users\\me\\project\\report final.pdf",
+  )
+  expect(calls).toEqual([{ value: "/home/me/project/report final.pdf", distro: "Ubuntu Preview" }])
+})
+
 test("stops health polling when sidecar startup settles", async () => {
   const abort = new AbortController()
   let checks = 0
